@@ -1,0 +1,25 @@
+// 移动端外壳：桌面浏览器下居中显示为手机列
+.mobile-shell {
+  max-width: 750px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background: #f7f8fa;
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.06);
+  position: relative;
+}
+
+@media screen and (max-width: 750px) {
+  .mobile-shell {
+    box-shadow: none;
+  }
+}
+
+.mobile-page {
+  min-height: 100vh;
+  padding-bottom: 60px; // 留出 tabbar 空间
+  background: #f7f8fa;
+}
+
+.mobile-page--no-tabbar {
+  padding-bottom: 0;
+}

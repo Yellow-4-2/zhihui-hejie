@@ -1,0 +1,223 @@
+// ========== 全局 ==========
+.pc-shell {
+  height: 100vh;
+  background: #f5f7fa;
+  overflow: hidden;
+}
+
+// ========== 顶部导航 ==========
+.pc-header {
+  background: linear-gradient(90deg, #409eff 0%, #337ecc 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  flex-shrink: 0;
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__logo {
+    font-size: 22px;
+  }
+
+  &__title {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  &__badge {
+    background: rgba(255, 255, 255, 0.25) !important;
+    border: none !important;
+    color: #fff !important;
+  }
+
+  &__right {
+    display: flex;
+    align-items: center;
+  }
+
+  &__user {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 4px;
+    transition: background 0.2s;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+  }
+}
+
+// ========== 侧边栏 ==========
+.pc-aside {
+  background: #001529 !important;
+  transition: width 0.3s;
+  overflow: hidden;
+}
+
+.pc-menu {
+  border-right: none;
+
+  // sub-menu 标题 hover
+  .el-sub-menu__title {
+    height: 48px;
+    line-height: 48px;
+  }
+
+  // menu-item
+  .el-menu-item {
+    height: 42px;
+    line-height: 42px;
+  }
+}
+
+// ========== 主内容区 ==========
+.pc-main {
+  padding: 16px;
+  overflow-y: auto;
+  background: #f5f7fa;
+}
+
+.pc-content {
+  border: none !important;
+  border-radius: 8px;
+}
+
+// ========== 工具栏 ==========
+.pc-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  &__left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+.pc-page-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+// ========== 章节区 ==========
+.pc-section {
+  margin-top: 20px;
+
+  &__title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 12px;
+    padding-left: 10px;
+    border-left: 3px solid #409eff;
+  }
+}
+
+// ========== 统计卡片 ==========
+.dash-stat {
+  margin-bottom: 4px;
+
+  &__card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 18px 14px;
+    margin-bottom: 16px;
+    border: 1px solid #e4e7ed;
+    border-top: 4px solid transparent;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+    cursor: default;
+
+    &:hover {
+      border-color: transparent;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+  }
+
+  &__num {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  &__label {
+    font-size: 13px;
+    color: #6b7280;
+    margin-top: 4px;
+  }
+}
+
+// ========== 旧的 pc-sidebar-item （已废弃，保留兼容性） ==========
+.pc-sidebar-item,
+.pc-sidebar-group {
+  display: none;
+}
+
+.text-secondary {
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+// ========== CaseDetailDrawer 作用域内 van- 组件覆盖 ==========
+// 抽屉里是共享的 CaseDetailView（移动端组件），PC 端需要缩小适配
+.pc-drawer {
+  .card {
+    background: #fff;
+    border-radius: 6px;
+    padding: 14px;
+    margin-bottom: 12px;
+    box-shadow: none;
+  }
+
+  // van-cell 样式重置
+  :deep(.van-cell) {
+    padding: 10px 0;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  :deep(.van-cell__title) {
+    color: #6b7280;
+    font-size: 12px;
+  }
+
+  :deep(.van-cell__value) {
+    color: #1f2937;
+    font-size: 13px;
+  }
+
+  // van-tag 在 PC 抽屉里放大了
+  :deep(.van-tag) {
+    font-size: 12px;
+    padding: 0 6px;
+    height: auto;
+    line-height: 1.6;
+  }
+
+  // van-image
+  :deep(.van-image) {
+    border-radius: 4px;
+  }
+
+  // van-rate
+  :deep(.van-rate) {
+    font-size: 16px;
+  }
+}

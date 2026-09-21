@@ -1,0 +1,102 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+  background: #f7f8fa;
+  color: #323233;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+// 通用工具类
+.flex {
+  display: flex;
+}
+.flex-1 {
+  flex: 1;
+  min-width: 0;
+}
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.text-secondary {
+  color: #969799;
+  font-size: 12px;
+}
+.page-section {
+  padding: 12px;
+}
+.card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.section-title {
+  font-size: 14px;
+  color: #969799;
+  padding: 12px 0 8px;
+}
+.mt-8 {
+  margin-top: 8px;
+}
+.mt-16 {
+  margin-top: 16px;
+}
+.mb-8 {
+  margin-bottom: 8px;
+}
+.empty-wrap {
+  padding: 60px 0;
+  text-align: center;
+  color: #969799;
+}
+
+// 函数式 Toast 通过 teleport 挂载到 body，不受 scoped 样式影响。
+// 这里做一层全局兜底，确保提示始终为深色底 + 白字，内容可见。
+.van-toast {
+  background: rgba(0, 0, 0, 0.78) !important;
+  color: #fff !important;
+
+  .van-toast__text {
+    color: #fff !important;
+  }
+}
