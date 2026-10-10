@@ -2,6 +2,15 @@
 
 const TOKEN_KEY = 'demo_token'
 
+/**
+ * 接口基地址：
+ * - 本地开发：空串，走 vite 代理 /api -> localhost:3001
+ * - 线上静态托管（EdgeOne Pages）：没有后端，默认指向云后端地址
+ * - 可用构建环境变量 VITE_API_BASE 覆盖（在 EdgeOne 控制台配置）
+ */
+const API_BASE: string =
+  import.meta.env.VITE_API_BASE ?? (import.meta.env.PROD ? 'https://PLACEHOLDER-待部署后回填' : '')
+
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
 }
@@ -21,7 +30,7 @@ export async function http<T>(url: string, options: RequestInit = {}): Promise<T
   const token = getToken()
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
-  const res = await fetch(url, { ...options, headers })
+  const res = await fetch(`${API_BASE}${url}`, { ...options, headers })
 
   // 登录失效：清 token，回到 Demo 登录页（项目使用 hash 路由）
   // 登录接口本身的 401（密码错误）不算会话失效，交给调用方提示
