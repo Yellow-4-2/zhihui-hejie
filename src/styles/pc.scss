@@ -175,9 +175,16 @@
   font-size: 13px;
 }
 
-// ========== CaseDetailDrawer 作用域内 van- 组件覆盖 ==========
-// 抽屉里是共享的 CaseDetailView（移动端组件），PC 端需要缩小适配
+// ========== CaseDetailDrawer（PC 抽屉）内 van- 组件覆盖 ==========
+// 抽屉里是共享的 CaseDetailView（移动端组件），PC 端需要缩小适配。
+// 注意：本文件是全局样式，不能用 :deep()（仅 scoped 样式有效），
+// 直接用 .pc-drawer 后代选择器即可（该类挂在 .el-drawer 面板上）。
 .pc-drawer {
+  .el-drawer__body {
+    background: #f7f8fa;
+    padding: 12px 16px;
+  }
+
   .card {
     background: #fff;
     border-radius: 6px;
@@ -187,24 +194,24 @@
   }
 
   // van-cell 样式重置
-  :deep(.van-cell) {
+  .van-cell {
     padding: 10px 0;
     font-size: 13px;
     line-height: 1.6;
   }
 
-  :deep(.van-cell__title) {
+  .van-cell__title {
     color: #6b7280;
     font-size: 12px;
   }
 
-  :deep(.van-cell__value) {
+  .van-cell__value {
     color: #1f2937;
     font-size: 13px;
   }
 
   // van-tag 在 PC 抽屉里放大了
-  :deep(.van-tag) {
+  .van-tag {
     font-size: 12px;
     padding: 0 6px;
     height: auto;
@@ -212,12 +219,12 @@
   }
 
   // van-image
-  :deep(.van-image) {
+  .van-image {
     border-radius: 4px;
   }
 
   // van-rate
-  :deep(.van-rate) {
+  .van-rate {
     font-size: 16px;
   }
 }

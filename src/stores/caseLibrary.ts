@@ -1,10 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { CaseLibraryEntry } from '@/types'
-import { MOCK_CASE_LIBRARY } from '@/mock/caseLibrary'
+import { fetchCaseLibrary } from '@/api/caseLibrary'
 
 export const useCaseLibraryStore = defineStore('caseLibrary', () => {
-  const entries = ref<CaseLibraryEntry[]>([...MOCK_CASE_LIBRARY])
+  const entries = ref<CaseLibraryEntry[]>([])
+  const loaded = ref(false)
 
   const byCategory = computed(() => {
     const map: Record<string, CaseLibraryEntry[]> = {}
@@ -13,6 +14,16 @@ export const useCaseLibraryStore = defineStore('caseLibrary', () => {
     }
     return map
   })
+
+  async function init() {
+    if (loaded.value) return
+    try {
+      entries.value = await fetchCaseLibrary()
+      loaded.value = true
+    } catch (e) {
+      console.error('fetch case library failed:', e)
+    }
+  }
 
   function search(keyword: string): CaseLibraryEntry[] {
     const k = keyword.trim().toLowerCase()
@@ -29,5 +40,5 @@ export const useCaseLibraryStore = defineStore('caseLibrary', () => {
     return entries.value.find((e) => e.id === id)
   }
 
-  return { entries, byCategory, search, getById }
+  return { entries, byCategory, loaded, init, search, getById }
 })

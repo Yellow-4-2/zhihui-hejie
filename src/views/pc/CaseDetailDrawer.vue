@@ -48,11 +48,3 @@ function onDone() {
 }
 </script>
 
-<style scoped>
-.pc-drawer {
-  .el-drawer__body {
-    background: #f7f8fa;
-    padding: 12px 16px;
-  }
-}
-</style>

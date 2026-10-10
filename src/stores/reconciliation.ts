@@ -1,264 +1,225 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { ReconciliationCase, Role, StatusTimelineItem } from '@/types'
+import type { ReconciliationCase, Role } from '@/types'
 import { CaseStatus } from '@/types'
-import { MOCK_CASES } from '@/mock/cases'
-import { genId, genCaseNo } from '@/utils/id'
+import {
+  fetchCases,
+  createCase,
+  acceptCase as apiAccept,
+  rejectCase as apiReject,
+  proposeSuggestion as apiPropose,
+  consumerConfirm as apiConsumerConfirm,
+  committeeConfirm as apiCommitteeConfirm,
+  completeReconcile as apiComplete,
+  returnVisit as apiReturnVisit,
+  evaluateCase as apiEvaluate,
+} from '@/api/cases'
 import { useUserStore } from './user'
 
-function clone<T>(v: T): T {
-  return JSON.parse(JSON.stringify(v)) as T
-}
+export const useReconciliationStore = defineStore('reconciliation', () => {
+  const cases = ref<ReconciliationCase[]>([])
+  const loaded = ref(false)
 
-export const useReconciliationStore = defineStore(
-  'reconciliation',
-  () => {
-    const cases = ref<ReconciliationCase[]>(clone(MOCK_CASES))
-
-    function getById(id: string): ReconciliationCase | undefined {
-      return cases.value.find((c) => c.id === id)
+  async function init() {
+    if (loaded.value) return
+    try {
+      cases.value = await fetchCases()
+      loaded.value = true
+    } catch (e) {
+      console.error('fetch cases failed:', e)
     }
+  }
 
-    // 按角色过滤可见案例
-    function casesForRole(role: Role | null): ReconciliationCase[] {
-      const userStore = useUserStore()
-      if (role === null) return []
-      if (role === 'committee_pc' || role === 'committee_m') {
-        return [...cases.value].sort((a, b) => b.updatedAt - a.updatedAt)
-      }
-      if (role === 'consumer') {
-        const phone = userStore.phone
-        return cases.value
-          .filter((c) => c.consumerPhone === phone)
-          .sort((a, b) => b.updatedAt - a.updatedAt)
-      }
-      if (role === 'enterprise') {
-        const eid = userStore.enterpriseId
-        return cases.value
-          .filter((c) => c.enterpriseId === eid)
-          .sort((a, b) => b.updatedAt - a.updatedAt)
-      }
-      return []
+  function getById(id: string): ReconciliationCase | undefined {
+    return cases.value.find((c) => c.id === id)
+  }
+
+  // 按角色过滤可见案例
+  function casesForRole(role: Role | null): ReconciliationCase[] {
+    const userStore = useUserStore()
+    if (role === null) return []
+    if (role === 'committee_pc' || role === 'committee_m') {
+      return [...cases.value].sort((a, b) => b.updatedAt - a.updatedAt)
     }
-
-    function byStatus(status: CaseStatus | 'ALL', role: Role | null): ReconciliationCase[] {
-      const list = casesForRole(role)
-      if (status === 'ALL') return list
-      return list.filter((c) => c.status === status)
+    if (role === 'consumer') {
+      const phone = userStore.phone
+      return cases.value
+        .filter((c) => c.consumerPhone === phone)
+        .sort((a, b) => b.updatedAt - a.updatedAt)
     }
-
-    function countsFor(role: Role | null): Record<string, number> {
-      const list = casesForRole(role)
-      const counts: Record<string, number> = {}
-      for (const s of Object.values(CaseStatus)) counts[s] = 0
-      for (const c of list) counts[c.status] = (counts[c.status] ?? 0) + 1
-      counts['ALL'] = list.length
-      return counts
+    if (role === 'enterprise') {
+      const eid = userStore.enterpriseId
+      return cases.value
+        .filter((c) => c.enterpriseId === eid)
+        .sort((a, b) => b.updatedAt - a.updatedAt)
     }
+    return []
+  }
 
-    function pushTimeline(c: ReconciliationCase, item: StatusTimelineItem) {
-      c.timeline.push(item)
-      c.updatedAt = item.at
+  function byStatus(status: CaseStatus | 'ALL', role: Role | null): ReconciliationCase[] {
+    const list = casesForRole(role)
+    if (status === 'ALL') return list
+    return list.filter((c) => c.status === status)
+  }
+
+  function countsFor(role: Role | null): Record<string, number> {
+    const list = casesForRole(role)
+    const counts: Record<string, number> = {}
+    for (const s of Object.values(CaseStatus)) counts[s] = 0
+    for (const c of list) counts[c.status] = (counts[c.status] ?? 0) + 1
+    counts['ALL'] = list.length
+    return counts
+  }
+
+  // 用 API 返回的更新后案件替换本地数组中的同 id 案件
+  function replaceCase(updated: ReconciliationCase) {
+    const idx = cases.value.findIndex((c) => c.id === updated.id)
+    if (idx >= 0) {
+      cases.value[idx] = updated
+    } else {
+      cases.value.unshift(updated)
     }
+  }
 
-    function nextSeq(): number {
-      let max = 0
-      for (const c of cases.value) {
-        const m = /(\d+)$/.exec(c.caseNo)
-        if (m) max = Math.max(max, parseInt(m[1], 10))
-      }
-      return max + 1
+  // 发起和解
+  async function initiateCase(payload: {
+    consumerName: string
+    consumerPhone: string
+    enterpriseName?: string
+    commodity: string
+    amount: number
+    description: string
+    initiator: Role
+  }): Promise<ReconciliationCase | null> {
+    try {
+      const created = await createCase(payload)
+      cases.value.unshift(created)
+      return created
+    } catch (e) {
+      console.error('initiateCase failed:', e)
+      return null
     }
+  }
 
-    // 发起和解
-    function initiateCase(payload: {
-      consumerName: string
-      consumerPhone: string
-      enterpriseName?: string
-      commodity: string
-      amount: number
-      description: string
-      initiator: Role
-    }): ReconciliationCase {
-      const now = Date.now()
-      const userStore = useUserStore()
-      const c: ReconciliationCase = {
-        id: genId('c'),
-        caseNo: genCaseNo(nextSeq()),
-        status: CaseStatus.PENDING,
-        consumerName: payload.consumerName,
-        consumerPhone: payload.consumerPhone,
-        enterpriseName: payload.enterpriseName,
-        commodity: payload.commodity,
-        amount: payload.amount,
-        description: payload.description,
-        initiator: payload.initiator,
-        createdAt: now,
-        updatedAt: now,
-        timeline: [
-          {
-            status: CaseStatus.PENDING,
-            at: now,
-            operator: userStore.name || '用户',
-            remark: '发起和解申请',
-          },
-        ],
-      }
-      cases.value.unshift(c)
-      return c
-    }
-
-    // 受理并分配企业
-    function acceptCase(id: string, enterpriseId: string, enterpriseName: string) {
-      const c = getById(id)
-      if (!c || c.status !== CaseStatus.PENDING) return false
-      c.enterpriseId = enterpriseId
-      c.enterpriseName = enterpriseName
-      c.status = CaseStatus.ACCEPTED
-      pushTimeline(c, {
-        status: CaseStatus.ACCEPTED,
-        at: Date.now(),
-        operator: '消保委',
-        remark: `核实情况属实，受理并分配至${enterpriseName}`,
-      })
+  // 受理并分配企业
+  async function acceptCase(id: string, enterpriseId: string, enterpriseName: string): Promise<boolean> {
+    try {
+      const updated = await apiAccept(id, enterpriseId, enterpriseName)
+      replaceCase(updated)
       return true
+    } catch (e) {
+      console.error('acceptCase failed:', e)
+      return false
     }
+  }
 
-    // 不受理
-    function rejectCase(id: string, remark: string) {
-      const c = getById(id)
-      if (!c || c.status !== CaseStatus.PENDING) return false
-      c.status = CaseStatus.REJECTED
-      c.rejectRemark = remark
-      pushTimeline(c, {
-        status: CaseStatus.REJECTED,
-        at: Date.now(),
-        operator: '消保委',
-        remark: remark || '不予受理',
-      })
+  // 不受理
+  async function rejectCase(id: string, remark: string): Promise<boolean> {
+    try {
+      const updated = await apiReject(id, remark)
+      replaceCase(updated)
       return true
+    } catch (e) {
+      console.error('rejectCase failed:', e)
+      return false
     }
+  }
 
-    // 发起和解建议
-    function proposeSuggestion(id: string, content: string, referencedCaseIds: string[]) {
-      const c = getById(id)
-      if (!c || c.status !== CaseStatus.ACCEPTED) return false
-      c.suggestion = {
-        content,
-        referencedCaseIds,
-        createdAt: Date.now(),
-        author: '消保委',
-      }
-      c.status = CaseStatus.IN_PROGRESS
-      pushTimeline(c, {
-        status: CaseStatus.IN_PROGRESS,
-        at: Date.now(),
-        operator: '消保委',
-        remark: '发起和解建议' + (referencedCaseIds.length ? '，并引用案例库参考' : ''),
-      })
+  // 发起和解建议
+  async function proposeSuggestion(id: string, content: string, referencedCaseIds: string[]): Promise<boolean> {
+    try {
+      const updated = await apiPropose(id, content, referencedCaseIds)
+      replaceCase(updated)
       return true
+    } catch (e) {
+      console.error('proposeSuggestion failed:', e)
+      return false
     }
+  }
 
-    // 消费者确认（同意/不同意）
-    function consumerConfirm(id: string, agreed: boolean) {
-      const c = getById(id)
-      if (!c || c.status !== CaseStatus.IN_PROGRESS) return false
-      c.status = agreed ? CaseStatus.COMPLETED : CaseStatus.FAILED
-      pushTimeline(c, {
-        status: c.status,
-        at: Date.now(),
-        operator: '消费者',
-        remark: agreed ? '同意和解方案' : '不同意和解方案',
-      })
+  // 消费者确认（同意/不同意）
+  async function consumerConfirm(id: string, agreed: boolean): Promise<boolean> {
+    try {
+      const updated = await apiConsumerConfirm(id, agreed)
+      replaceCase(updated)
       return true
+    } catch (e) {
+      console.error('consumerConfirm failed:', e)
+      return false
     }
+  }
 
-    // 消保委和解确认（记录消费者决定）
-    function committeeConfirm(id: string, agreed: boolean) {
-      const c = getById(id)
-      if (!c || c.status !== CaseStatus.IN_PROGRESS) return false
-      c.status = agreed ? CaseStatus.COMPLETED : CaseStatus.FAILED
-      pushTimeline(c, {
-        status: c.status,
-        at: Date.now(),
-        operator: '消保委',
-        remark: agreed ? '消费者确认同意，和解完成' : '消费者不同意，和解失败',
-      })
+  // 消保委和解确认
+  async function committeeConfirm(id: string, agreed: boolean): Promise<boolean> {
+    try {
+      const updated = await apiCommitteeConfirm(id, agreed)
+      replaceCase(updated)
       return true
+    } catch (e) {
+      console.error('committeeConfirm failed:', e)
+      return false
     }
+  }
 
-    // 企业完成和解（上传凭证）
-    function completeReconcile(id: string, voucherImages: string[]) {
-      const c = getById(id)
-      if (!c || c.status !== CaseStatus.IN_PROGRESS) return false
-      c.completionVoucherImages = voucherImages
-      c.status = CaseStatus.COMPLETED
-      pushTimeline(c, {
-        status: CaseStatus.COMPLETED,
-        at: Date.now(),
-        operator: '入驻企业',
-        remark: '与消费者达成一致，完成和解并上传凭证',
-      })
+  // 企业完成和解（上传凭证）
+  async function completeReconcile(id: string, voucherImages: string[]): Promise<boolean> {
+    try {
+      const updated = await apiComplete(id, voucherImages)
+      replaceCase(updated)
       return true
+    } catch (e) {
+      console.error('completeReconcile failed:', e)
+      return false
     }
+  }
 
-    // 回访确认
-    function returnVisit(id: string, remark: string) {
-      const c = getById(id)
-      if (!c || c.status !== CaseStatus.COMPLETED) return false
-      c.status = CaseStatus.FINISHED
-      c.returnVisitRemark = remark
-      c.returnVisitedAt = Date.now()
-      pushTimeline(c, {
-        status: CaseStatus.FINISHED,
-        at: Date.now(),
-        operator: '消保委',
-        remark: `回访确认：${remark}`,
-      })
+  // 回访确认
+  async function returnVisit(id: string, remark: string): Promise<boolean> {
+    try {
+      const updated = await apiReturnVisit(id, remark)
+      replaceCase(updated)
       return true
+    } catch (e) {
+      console.error('returnVisit failed:', e)
+      return false
     }
+  }
 
-    // 评价
-    function evaluate(id: string, rating: 1 | 2 | 3 | 4 | 5, comment?: string) {
-      const c = getById(id)
-      if (!c || c.status !== CaseStatus.FINISHED) return false
-      c.evaluation = { rating, comment, createdAt: Date.now() }
-      c.status = CaseStatus.EVALUATED
-      pushTimeline(c, {
-        status: CaseStatus.EVALUATED,
-        at: Date.now(),
-        operator: '消费者',
-        remark: `评价满意（${rating}星）`,
-      })
+  // 评价
+  async function evaluate(id: string, rating: 1 | 2 | 3 | 4 | 5, comment?: string): Promise<boolean> {
+    try {
+      const updated = await apiEvaluate(id, rating, comment)
+      replaceCase(updated)
       return true
+    } catch (e) {
+      console.error('evaluate failed:', e)
+      return false
     }
+  }
 
-    function resetMock() {
-      cases.value = clone(MOCK_CASES)
-    }
+  // 重新从后端拉取全部数据（原 resetMock）
+  async function resetMock() {
+    loaded.value = false
+    await init()
+  }
 
-    return {
-      cases,
-      getById,
-      casesForRole,
-      byStatus,
-      countsFor,
-      initiateCase,
-      acceptCase,
-      rejectCase,
-      proposeSuggestion,
-      consumerConfirm,
-      committeeConfirm,
-      completeReconcile,
-      returnVisit,
-      evaluate,
-      resetMock,
-    }
-  },
-  {
-    persist: {
-      key: 'zhj-cases',
-      pick: ['cases'],
-    },
-  },
-)
+  return {
+    cases,
+    loaded,
+    init,
+    getById,
+    casesForRole,
+    byStatus,
+    countsFor,
+    initiateCase,
+    acceptCase,
+    rejectCase,
+    proposeSuggestion,
+    consumerConfirm,
+    committeeConfirm,
+    completeReconcile,
+    returnVisit,
+    evaluate,
+    resetMock,
+  }
+})

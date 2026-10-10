@@ -31,7 +31,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document); // 访问地址：/docs
 
-  const port = process.env.PORT ?? 3000;
+  const port = process.env.PORT ?? 3001;
   await app.listen(port);
   logger.log(`服务已启动: http://localhost:${port}/api`);
   logger.log(`Swagger 文档: http://localhost:${port}/docs`);

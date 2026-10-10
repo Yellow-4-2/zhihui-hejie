@@ -56,8 +56,8 @@ const ratingText = computed(() => {
   return ['', '很不满意', '不满意', '一般', '满意', '非常满意'][rating.value] ?? ''
 })
 
-function onSubmit() {
-  const ok = recoStore.evaluate(route.params.id as string, rating.value, comment.value)
+async function onSubmit() {
+  const ok = await recoStore.evaluate(route.params.id as string, rating.value, comment.value)
   if (ok) {
     showToast('评价成功，感谢您的反馈')
     setTimeout(() => router.replace('/m/consumer'), 600)

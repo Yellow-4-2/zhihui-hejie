@@ -101,15 +101,23 @@ const loginRules: FormRules = {
 
 function onPcSubmit() {
   if (!elFormRef.value) return
-  elFormRef.value.validate((valid) => {
+  elFormRef.value.validate(async (valid) => {
     if (!valid) return
     loading.value = true
-    setTimeout(() => {
-      const ok = userStore.loginByAccount(targetRole.value, loginForm.value.account!, loginForm.value.password!)
-      loading.value = false
-      if (!ok) { ElMessage.error('账号或密码错误'); return }
+    try {
+      // PC 端走真实后端登录换取 JWT；移动端消保委仍用演示账号
+      if (isPcRoute.value) {
+        await userStore.loginPc(loginForm.value.account!, loginForm.value.password!)
+      } else {
+        const ok = userStore.loginByAccount(targetRole.value, loginForm.value.account!, loginForm.value.password!)
+        if (!ok) { ElMessage.error('账号或密码错误'); return }
+      }
       onSuccess()
-    }, 300)
+    } catch (e) {
+      ElMessage.error((e as Error).message || '登录失败')
+    } finally {
+      loading.value = false
+    }
   })
 }
 

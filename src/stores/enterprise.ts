@@ -1,12 +1,23 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Enterprise } from '@/types'
-import { MOCK_ENTERPRISES } from '@/mock/enterprises'
+import { fetchEnterprises } from '@/api/enterprises'
 
 export const useEnterpriseStore = defineStore('enterprise', () => {
-  const enterprises = ref<Enterprise[]>([...MOCK_ENTERPRISES])
+  const enterprises = ref<Enterprise[]>([])
+  const loaded = ref(false)
 
   const list = computed(() => enterprises.value)
+
+  async function init() {
+    if (loaded.value) return
+    try {
+      enterprises.value = await fetchEnterprises()
+      loaded.value = true
+    } catch (e) {
+      console.error('fetch enterprises failed:', e)
+    }
+  }
 
   function getById(id?: string): Enterprise | undefined {
     if (!id) return undefined
@@ -21,5 +32,5 @@ export const useEnterpriseStore = defineStore('enterprise', () => {
     )
   }
 
-  return { enterprises, list, getById, search }
+  return { enterprises, list, loaded, init, getById, search }
 })

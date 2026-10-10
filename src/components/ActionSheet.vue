@@ -218,8 +218,8 @@ function onAction(a: ActionDef) {
       break
     case 'consumer_agree':
       showConfirmDialog({ title: '提示', message: '确认同意该和解方案？' })
-        .then(() => {
-          recoStore.consumerConfirm(props.caseData.id, true)
+        .then(async () => {
+          await recoStore.consumerConfirm(props.caseData.id, true)
           showToast('已同意和解')
           emit('done')
         })
@@ -227,8 +227,8 @@ function onAction(a: ActionDef) {
       break
     case 'consumer_disagree':
       showConfirmDialog({ title: '提示', message: '确认不同意该和解方案？' })
-        .then(() => {
-          recoStore.consumerConfirm(props.caseData.id, false)
+        .then(async () => {
+          await recoStore.consumerConfirm(props.caseData.id, false)
           showToast('已不同意')
           emit('done')
         })
@@ -254,8 +254,8 @@ function onEnterpriseConfirm({ selectedValues }: { selectedValues: string[] }) {
   if (!ent) return
   enterprisePickerShow.value = false
   // 先关闭弹窗，再在 nextTick 变更状态+提示，避免同步重渲染打断弹窗关闭导致白壳残留
-  nextTick(() => {
-    const ok = recoStore.acceptCase(props.caseData.id, ent.id, ent.name)
+  nextTick(async () => {
+    const ok = await recoStore.acceptCase(props.caseData.id, ent.id, ent.name)
     if (ok) {
       showToast('已受理并分配企业')
       emit('done')
@@ -270,8 +270,8 @@ function onRejectConfirm() {
   }
   const remark = rejectRemark.value
   rejectDialogShow.value = false
-  nextTick(() => {
-    const ok = recoStore.rejectCase(props.caseData.id, remark)
+  nextTick(async () => {
+    const ok = await recoStore.rejectCase(props.caseData.id, remark)
     if (ok) {
       showToast('已标记不受理')
       emit('done')
@@ -291,8 +291,8 @@ function onSuggestionConfirm() {
   const content = suggestionContent.value
   const refs = [...suggestionRefIds.value]
   suggestionShow.value = false
-  nextTick(() => {
-    const ok = recoStore.proposeSuggestion(props.caseData.id, content, refs)
+  nextTick(async () => {
+    const ok = await recoStore.proposeSuggestion(props.caseData.id, content, refs)
     if (ok) {
       showToast('已发起和解建议')
       emit('done')
@@ -303,8 +303,8 @@ function onSuggestionConfirm() {
 function onCommitteeConfirm() {
   const agreed = committeeAgreed.value
   committeeConfirmShow.value = false
-  nextTick(() => {
-    const ok = recoStore.committeeConfirm(props.caseData.id, agreed)
+  nextTick(async () => {
+    const ok = await recoStore.committeeConfirm(props.caseData.id, agreed)
     if (ok) {
       showToast(agreed ? '已记录：同意和解' : '已记录：不同意')
       emit('done')
@@ -315,8 +315,8 @@ function onCommitteeConfirm() {
 function onCompleteConfirm() {
   const images = [...completeImages.value]
   completeShow.value = false
-  nextTick(() => {
-    const ok = recoStore.completeReconcile(props.caseData.id, images)
+  nextTick(async () => {
+    const ok = await recoStore.completeReconcile(props.caseData.id, images)
     if (ok) {
       showToast('已完成和解')
       emit('done')
@@ -331,8 +331,8 @@ function onReturnVisitConfirm() {
   }
   const remark = returnRemark.value
   returnVisitShow.value = false
-  nextTick(() => {
-    const ok = recoStore.returnVisit(props.caseData.id, remark)
+  nextTick(async () => {
+    const ok = await recoStore.returnVisit(props.caseData.id, remark)
     if (ok) {
       showToast('回访确认完成')
       emit('done')

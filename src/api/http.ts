@@ -24,7 +24,8 @@ export async function http<T>(url: string, options: RequestInit = {}): Promise<T
   const res = await fetch(url, { ...options, headers })
 
   // 登录失效：清 token，回到 Demo 登录页（项目使用 hash 路由）
-  if (res.status === 401) {
+  // 登录接口本身的 401（密码错误）不算会话失效，交给调用方提示
+  if (res.status === 401 && !url.includes('/api/auth/login')) {
     clearToken()
     if (!location.hash.startsWith('#/demo')) {
       location.hash = '#/demo'

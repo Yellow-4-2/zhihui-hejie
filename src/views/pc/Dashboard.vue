@@ -113,8 +113,8 @@ function onReset() {
     cancelButtonText: '取消',
     type: 'warning',
   })
-    .then(() => {
-      recoStore.resetMock()
+    .then(async () => {
+      await recoStore.resetMock()
       refresh()
       ElMessage.success('已重置')
     })

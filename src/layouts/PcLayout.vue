@@ -86,14 +86,26 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
+import { useReconciliationStore } from '@/stores/reconciliation'
+import { useEnterpriseStore } from '@/stores/enterprise'
+import { useCaseLibraryStore } from '@/stores/caseLibrary'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const recoStore = useReconciliationStore()
+const enterpriseStore = useEnterpriseStore()
+const caseLibStore = useCaseLibraryStore()
+
+onMounted(() => {
+  recoStore.init()
+  enterpriseStore.init()
+  caseLibStore.init()
+})
 
 const activeMenu = computed(() => {
   // Dashboard 路径是 /pc，保持激活

@@ -5,8 +5,11 @@ import {
   BadRequestException,
   OnModuleInit,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UserEntity } from './user.entity';
 import { Role } from '../common/role.enum';
 import { hashPassword } from '../common/password.util';
 
@@ -24,66 +27,67 @@ export type SafeUser = Omit<User, 'password'>;
 
 @Injectable()
 export class UsersService implements OnModuleInit {
-  // 内存数组模拟数据库：重启后数据重置
-  private users: User[] = [];
-  private idSeq = 1;
+  constructor(
+    @InjectRepository(UserEntity)
+    private readonly repo: Repository<UserEntity>,
+  ) {}
 
-  /** 预置账号：四种角色各一个，密码统一 123456，方便直接登录体验 */
-  onModuleInit() {
-    const seeds: Array<Omit<User, 'id' | 'password'> & { password: string }> = [
+  /** 空表时播种预置账号（四种角色各一个，密码统一 123456）；已有数据则跳过，保证删除结果重启不丢 */
+  async onModuleInit() {
+    if ((await this.repo.count()) > 0) return;
+    const seeds: Array<Omit<User, 'id'> & { password: string }> = [
       { name: '消费者小王', email: 'consumer@test.com', password: '123456', role: Role.CONSUMER },
-      { name: '某品牌企业', email: 'enterprise@test.com', password: '123456', role: Role.ENTERPRISE, enterpriseId: 'E001' },
+      { name: '某品牌企业', email: 'enterprise@test.com', password: '123456', role: Role.ENTERPRISE, enterpriseId: 'e1' },
       { name: '消保委调解员', email: 'committee-m@test.com', password: '123456', role: Role.COMMITTEE_M },
       { name: '消保委管理员', email: 'committee-pc@test.com', password: '123456', role: Role.COMMITTEE_PC },
     ];
     for (const seed of seeds) {
       const { password, ...rest } = seed;
-      this.users.push({ id: this.idSeq++, ...rest, password: hashPassword(password) });
+      await this.repo.save({ ...rest, password: hashPassword(password) });
     }
   }
 
-  create(dto: CreateUserDto): SafeUser {
-    if (this.users.some((u) => u.email === dto.email)) {
+  async create(dto: CreateUserDto): Promise<SafeUser> {
+    if (await this.repo.findOne({ where: { email: dto.email } })) {
       throw new ConflictException('该邮箱已被注册');
     }
     this.validateEnterpriseLink(dto.role, dto.enterpriseId);
 
-    const user: User = {
-      id: this.idSeq++,
+    const saved = await this.repo.save({
       name: dto.name,
       email: dto.email,
       role: dto.role,
       enterpriseId: dto.enterpriseId,
       password: hashPassword(dto.password),
-    };
-    this.users.push(user);
-    return this.sanitize(user);
+    });
+    return this.sanitize(saved);
   }
 
-  findAll(keyword?: string): SafeUser[] {
-    const list = keyword
-      ? this.users.filter(
-          (u) => u.name.includes(keyword) || u.email.includes(keyword),
-        )
-      : this.users;
+  async findAll(keyword?: string): Promise<SafeUser[]> {
+    const qb = this.repo.createQueryBuilder('u');
+    if (keyword) {
+      qb.where('u.name LIKE :kw OR u.email LIKE :kw', { kw: `%${keyword}%` });
+    }
+    const list = await qb.orderBy('u.id', 'ASC').getMany();
     return list.map((u) => this.sanitize(u));
   }
 
-  findOne(id: number): SafeUser {
-    return this.sanitize(this.getById(id));
+  async findOne(id: number): Promise<SafeUser> {
+    return this.sanitize(await this.getById(id));
   }
 
   /** 供 Auth 模块登录使用：返回含密码哈希的完整记录 */
-  findByEmail(email: string): User | undefined {
-    return this.users.find((u) => u.email === email);
+  async findByEmail(email: string): Promise<User | undefined> {
+    const found = await this.repo.findOne({ where: { email } });
+    return found ?? undefined;
   }
 
-  update(id: number, dto: UpdateUserDto): SafeUser {
-    const user = this.getById(id);
+  async update(id: number, dto: UpdateUserDto): Promise<SafeUser> {
+    const user = await this.getById(id);
 
     // 邮箱变更时检查唯一
     if (dto.email && dto.email !== user.email) {
-      if (this.users.some((u) => u.email === dto.email)) {
+      if (await this.repo.findOne({ where: { email: dto.email } })) {
         throw new ConflictException('该邮箱已被其他用户使用');
       }
     }
@@ -108,18 +112,18 @@ export class UsersService implements OnModuleInit {
     }
     user.role = nextRole;
     user.enterpriseId = nextEnterpriseId;
+    await this.repo.save(user);
     return this.sanitize(user);
   }
 
-  remove(id: number): { id: number } {
-    const index = this.users.findIndex((u) => u.id === id);
-    if (index === -1) throw new NotFoundException('用户不存在');
-    this.users.splice(index, 1);
+  async remove(id: number): Promise<{ id: number }> {
+    const user = await this.getById(id);
+    await this.repo.remove(user);
     return { id };
   }
 
-  private getById(id: number): User {
-    const user = this.users.find((u) => u.id === id);
+  private async getById(id: number): Promise<UserEntity> {
+    const user = await this.repo.findOne({ where: { id } });
     if (!user) throw new NotFoundException('用户不存在');
     return user;
   }
@@ -134,7 +138,7 @@ export class UsersService implements OnModuleInit {
     }
   }
 
-  private sanitize(user: User): SafeUser {
+  private sanitize(user: UserEntity): SafeUser {
     const { password, ...rest } = user;
     return rest;
   }

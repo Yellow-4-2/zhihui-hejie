@@ -101,8 +101,8 @@ function phoneRule(v: string) {
   return /^1\d{10}$/.test(v)
 }
 
-function onSubmit() {
-  const c = recoStore.initiateCase({
+async function onSubmit() {
+  const c = await recoStore.initiateCase({
     consumerName: form.consumerName || userStore.name || '',
     consumerPhone: form.consumerPhone || userStore.phone || '',
     enterpriseName: form.enterpriseName || undefined,
@@ -111,6 +111,10 @@ function onSubmit() {
     description: form.description,
     initiator: role.value as Role,
   })
+  if (!c) {
+    showToast('提交失败，请重试')
+    return
+  }
   showToast('提交成功')
   setTimeout(() => {
     router.replace(`/m/${route.params.role}/case/${c.id}`)

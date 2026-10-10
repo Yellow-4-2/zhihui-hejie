@@ -104,11 +104,17 @@ import { User, ArrowDown, SwitchButton, HomeFilled, Edit, Clock, Operation, Circ
 import { CaseStatus } from '@/types'
 import { STATUS_META } from '@/config/statusMeta'
 import { useUserStore } from '@/stores/user'
+import { useReconciliationStore } from '@/stores/reconciliation'
+import { useEnterpriseStore } from '@/stores/enterprise'
+import { useCaseLibraryStore } from '@/stores/caseLibrary'
 import { MOBILE_ROLE_PARAM, ROLE_LABEL } from '@/config/constants'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
+const recoStore = useReconciliationStore()
+const enterpriseStore = useEnterpriseStore()
+const caseLibStore = useCaseLibraryStore()
 
 // ---------- 响应式：检测 PC / 移动 ----------
 const DESKTOP_BREAKPOINT = 900
@@ -121,6 +127,9 @@ onMounted(() => {
     mql = window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT}px)`)
     mql.addEventListener('change', onMqlChange)
   }
+  recoStore.init()
+  enterpriseStore.init()
+  caseLibStore.init()
 })
 onBeforeUnmount(() => { mql?.removeEventListener('change', onMqlChange) })
 

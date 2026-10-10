@@ -16,7 +16,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: '登录（邮箱+密码），返回 JWT' })
-  login(@Body() dto: LoginDto): LoginVo & { user: unknown } {
+  login(@Body() dto: LoginDto): Promise<LoginVo & { user: unknown }> {
     return this.authService.login(dto);
   }
 

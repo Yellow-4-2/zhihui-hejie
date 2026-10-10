@@ -4,6 +4,13 @@ import type { MockUser } from '@/types'
 import { Role } from '@/types'
 import { MOCK_USERS } from '@/mock/users'
 import { SMS_MOCK_CODE } from '@/config/constants'
+import { login as authLogin } from '@/api/auth'
+import { setToken } from '@/api/http'
+
+/** 历史演示账号 → 后端预置邮箱映射（登录框仍可预填 admin） */
+const PC_ACCOUNT_EMAIL_MAP: Record<string, string> = {
+  admin: 'committee-pc@test.com',
+}
 
 export const useUserStore = defineStore(
   'user',
@@ -26,11 +33,21 @@ export const useUserStore = defineStore(
     const phone = computed(() => currentUser.value?.phone)
     const name = computed(() => currentUser.value?.name ?? '')
 
-    function loginPc(account: string, password: string): boolean {
-      return loginByAccount(Role.COMMITTEE_PC, account, password)
+    /** PC 端登录：走真实后端 /api/auth/login 换取 JWT，供 /api/users 等鉴权接口使用；失败时抛出错误信息 */
+    async function loginPc(account: string, password: string): Promise<void> {
+      const email = PC_ACCOUNT_EMAIL_MAP[account.trim()] ?? account.trim()
+      const res = await authLogin({ email, password })
+      setToken(res.accessToken)
+      currentUser.value = {
+        id: `u-${res.user.id}`,
+        role: res.user.role,
+        name: res.user.name,
+        account: res.user.email,
+        enterpriseId: res.user.enterpriseId ?? undefined,
+      }
     }
 
-    // 通用账号密码登录：按指定角色匹配（消保委PC/消保委移动端均用账号密码）
+    // 通用账号密码登录：按指定角色匹配（消保委移动端沿用演示账号）
     function loginByAccount(targetRole: Role, account: string, password: string): boolean {
       const u = MOCK_USERS.find(
         (x) => x.role === targetRole && x.account === account && x.password === password,

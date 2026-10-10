@@ -52,7 +52,7 @@
             height="100px"
             fit="cover"
             radius="6"
-            @click="previewImages(i)"
+            @click="openPreview(i)"
           />
         </div>
       </div>
@@ -85,13 +85,32 @@
       <div v-if="$slots.actions" class="case-detail__actions">
         <slot name="actions" />
       </div>
+
+      <!-- 凭证图片预览：closeable 提供 PC 端关闭按钮，PC 鼠标点击图片也可关闭 -->
+      <van-image-preview
+        v-model:show="previewVisible"
+        :images="previewList"
+        :start-position="previewIndex"
+        closeable
+        teleport="body"
+      >
+        <template #image="{ src, onLoad, style }">
+          <van-image
+            :src="src"
+            fit="contain"
+            class="van-image-preview__image case-detail__preview-img"
+            :style="style"
+            @load="onLoad"
+            @click="onPreviewClick"
+          />
+        </template>
+      </van-image-preview>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { showImagePreview } from 'vant'
+import { computed, ref } from 'vue'
 import type { ReconciliationCase } from '@/types'
 import StatusBadge from './StatusBadge.vue'
 import StatusTimeline from './StatusTimeline.vue'
@@ -108,9 +127,22 @@ const referencedCases = computed(() => {
   >[]
 })
 
-function previewImages(index: number) {
+const previewVisible = ref(false)
+const previewList = ref<string[]>([])
+const previewIndex = ref(0)
+
+function openPreview(index: number) {
   const imgs = props.caseData?.completionVoucherImages ?? []
-  if (imgs.length) showImagePreview(imgs, index)
+  if (!imgs.length) return
+  previewList.value = imgs
+  previewIndex.value = index
+  previewVisible.value = true
+}
+
+// PC 端鼠标点击图片/遮罩即可关闭；触屏跳过（由 Vant 触摸逻辑处理，保留双击缩放）
+function onPreviewClick(e: MouseEvent) {
+  if (e instanceof PointerEvent && e.pointerType !== 'mouse') return
+  previewVisible.value = false
 }
 </script>
 
@@ -156,5 +188,19 @@ function previewImages(index: number) {
 }
 .case-detail__actions {
   padding: 12px;
+}
+/* PC 端预览大图不铺满全屏：限宽 80vw、限高 80vh，居中显示；移动端保持 Vant 默认 */
+@media screen and (min-width: 751px) {
+  .case-detail__preview-img {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .case-detail__preview-img :deep(img) {
+    width: auto;
+    height: auto;
+    max-width: 80vw;
+    max-height: 80vh;
+  }
 }
 </style>

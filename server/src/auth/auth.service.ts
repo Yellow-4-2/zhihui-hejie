@@ -11,8 +11,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  login(dto: LoginDto): { accessToken: string; user: SafeUser } {
-    const record = this.usersService.findByEmail(dto.email);
+  async login(dto: LoginDto): Promise<{ accessToken: string; user: SafeUser }> {
+    const record = await this.usersService.findByEmail(dto.email);
     // 账号不存在 / 密码错误统一提示，避免暴露「账号是否存在」
     if (!record || !verifyPassword(dto.password, record.password)) {
       throw new UnauthorizedException('邮箱或密码错误');
@@ -29,7 +29,7 @@ export class AuthService {
   }
 
   /** JWT 有效时返回当前登录用户完整信息 */
-  profile(userId: number): SafeUser {
+  async profile(userId: number): Promise<SafeUser> {
     return this.usersService.findOne(userId);
   }
 }
