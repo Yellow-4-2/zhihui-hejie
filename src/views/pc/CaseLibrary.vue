@@ -28,23 +28,42 @@
       </template>
     </PcTable>
 
-    <el-dialog v-model="detailShow" :title="current?.title" width="480px">
-      <div class="case-lib-detail">
-        <el-tag size="small" type="info">{{ current?.category }}</el-tag>
-        <span class="case-lib-detail__price">金额：¥{{ current?.amount }}</span>
-        <p class="case-lib-detail__summary">{{ current?.summary }}</p>
-        <div class="case-lib-detail__suggestion">
-          <strong>和解建议：</strong>
-          {{ current?.suggestion }}
+    <el-dialog v-model="detailShow" :title="current?.title" width="520px" class="case-lib-dialog">
+      <div v-if="current" class="case-lib-detail">
+        <div class="case-lib-detail__meta">
+          <div class="case-lib-detail__tags">
+            <el-tag size="small" type="primary" effect="light" round>{{ current.category }}</el-tag>
+            <StatusBadge :status="current.status" variant="pc" size="small" />
+          </div>
+          <div class="case-lib-detail__price">
+            <span class="case-lib-detail__price-label">争议金额</span>
+            <span class="case-lib-detail__price-value">¥{{ current.amount.toLocaleString() }}</span>
+          </div>
         </div>
+
+        <section class="case-lib-detail__block">
+          <h4 class="case-lib-detail__label">纠纷摘要</h4>
+          <p class="case-lib-detail__summary">{{ current.summary }}</p>
+        </section>
+
+        <section class="case-lib-detail__suggestion">
+          <h4 class="case-lib-detail__label case-lib-detail__label--accent">
+            <el-icon><Promotion /></el-icon>
+            和解建议
+          </h4>
+          <p class="case-lib-detail__suggestion-text">{{ current.suggestion }}</p>
+        </section>
       </div>
+      <template #footer>
+        <el-button type="primary" @click="detailShow = false">我知道了</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Promotion } from '@element-plus/icons-vue'
 import { useCaseLibraryStore } from '@/stores/caseLibrary'
 import type { CaseLibraryEntry } from '@/types'
 import PcTable, { type PcColumn } from '@/components/PcTable.vue'
@@ -75,30 +94,123 @@ function onView(row: CaseLibraryEntry) {
 
 <style scoped>
 .case-lib-detail {
-  padding: 4px 0;
+  padding: 2px 0 6px;
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+    border-bottom: 1px dashed #e5e7eb;
+  }
+
+  &__tags {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
   &__price {
-    margin-left: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1.3;
+  }
+
+  &__price-label {
+    font-size: 12px;
+    color: #9ca3af;
+  }
+
+  &__price-value {
+    font-size: 20px;
+    font-weight: 600;
     color: #f56c6c;
-    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    letter-spacing: 1px;
+  }
+
+  &__label--accent {
+    color: #409eff;
+  }
+
+  &__block {
+    padding: 12px 14px;
+    background: #f9fafb;
+    border-radius: 8px;
+    margin-bottom: 12px;
   }
 
   &__summary {
-    margin-top: 14px;
+    margin: 0;
     color: #374151;
     font-size: 14px;
     line-height: 1.8;
   }
 
   &__suggestion {
-    margin-top: 14px;
     padding: 12px 14px;
-    background: #ecf5ff;
-    border-radius: 4px;
+    background: linear-gradient(135deg, #f0f7ff 0%, #ecf5ff 100%);
+    border: 1px solid #d9ecff;
     border-left: 3px solid #409eff;
+    border-radius: 8px;
+  }
+
+  &__suggestion-text {
+    margin: 0;
+    color: #303133;
     font-size: 14px;
     line-height: 1.8;
-    color: #303133;
   }
+}
+</style>
+
+<style>
+/* 弹窗外壳由 Element Plus 内部渲染，样式放全局并挂唯一 class，避免 scoped 属性选择器失配 */
+.case-lib-dialog {
+  border-radius: 12px;
+}
+
+.case-lib-dialog .el-dialog__header {
+  padding: 18px 22px 14px;
+  margin-right: 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.case-lib-dialog .el-dialog__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.case-lib-dialog .el-dialog__title::before {
+  content: '';
+  width: 4px;
+  height: 16px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #409eff, #79bbff);
+}
+
+.case-lib-dialog .el-dialog__body {
+  padding: 18px 22px;
+}
+
+.case-lib-dialog .el-dialog__footer {
+  padding: 0 22px 18px;
 }
 </style>
