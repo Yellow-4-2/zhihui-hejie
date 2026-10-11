@@ -24,7 +24,7 @@
       </template>
       <template #createdAt="{ row }">{{ formatTime(row.createdAt) }}</template>
       <template #action="{ row }">
-        <el-button text type="primary" @click="onView(row)">查看建议</el-button>
+        <el-button size="small" type="primary" plain @click="onView(row)">查看建议</el-button>
       </template>
     </PcTable>
 

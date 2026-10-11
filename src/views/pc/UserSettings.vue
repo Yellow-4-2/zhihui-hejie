@@ -16,7 +16,7 @@
         <el-tag type="primary" effect="light">{{ ROLE_LABEL[row.role as Role] }}</el-tag>
       </template>
       <template #action="{ row }">
-        <el-button type="danger" text @click="onRemove(row)">移除</el-button>
+        <el-button size="small" type="danger" plain @click="onRemove(row)">移除</el-button>
       </template>
     </PcTable>
 

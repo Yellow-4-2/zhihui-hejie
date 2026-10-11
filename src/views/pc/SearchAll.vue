@@ -38,7 +38,7 @@
       <template #amount="{ row }">¥{{ row.amount }}</template>
       <template #updatedAt="{ row }">{{ formatTime(row.updatedAt) }}</template>
       <template #action="{ row }">
-        <el-button type="primary" text @click="openDetail(row.id)">查看详情</el-button>
+        <el-button size="small" type="primary" plain @click="openDetail(row.id)">查看详情</el-button>
       </template>
     </PcTable>
 
