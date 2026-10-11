@@ -93,87 +93,89 @@ function onView(row: CaseLibraryEntry) {
 </script>
 
 <style scoped>
+/* 注意：不要在 plain CSS 的 style 块里用 & 嵌套——构建不会展开，
+   浏览器会把 &__xxx 判为非法选择器整条丢弃（本项目踩过坑），必须写扁平类名 */
 .case-lib-detail {
-  padding: 2px 0 6px;
+  padding: 4px 0 8px;
+}
 
-  &__meta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding-bottom: 18px;
-    margin-bottom: 18px;
-    border-bottom: 1px dashed #e5e7eb;
-  }
+.case-lib-detail__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px dashed #e5e7eb;
+}
 
-  &__tags {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+.case-lib-detail__tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-  &__price {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    line-height: 1.3;
-  }
+.case-lib-detail__price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.3;
+}
 
-  &__price-label {
-    font-size: 12px;
-    color: #9ca3af;
-  }
+.case-lib-detail__price-label {
+  font-size: 12px;
+  color: #9ca3af;
+}
 
-  &__price-value {
-    font-size: 20px;
-    font-weight: 600;
-    color: #f56c6c;
-    font-variant-numeric: tabular-nums;
-  }
+.case-lib-detail__price-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #f56c6c;
+  font-variant-numeric: tabular-nums;
+}
 
-  &__label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin: 0 0 10px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #6b7280;
-    letter-spacing: 1px;
-  }
+.case-lib-detail__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  letter-spacing: 1px;
+}
 
-  &__label--accent {
-    color: #409eff;
-  }
+.case-lib-detail__label--accent {
+  color: #409eff;
+}
 
-  &__block {
-    padding: 14px 16px;
-    background: #f9fafb;
-    border-radius: 8px;
-    margin-bottom: 16px;
-  }
+.case-lib-detail__block {
+  padding: 14px 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
 
-  &__summary {
-    margin: 0;
-    color: #374151;
-    font-size: 14px;
-    line-height: 1.8;
-  }
+.case-lib-detail__summary {
+  margin: 0;
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.8;
+}
 
-  &__suggestion {
-    padding: 14px 16px;
-    background: linear-gradient(135deg, #f0f7ff 0%, #ecf5ff 100%);
-    border: 1px solid #d9ecff;
-    border-left: 3px solid #409eff;
-    border-radius: 8px;
-  }
+.case-lib-detail__suggestion {
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #f0f7ff 0%, #ecf5ff 100%);
+  border: 1px solid #d9ecff;
+  border-left: 3px solid #409eff;
+  border-radius: 8px;
+}
 
-  &__suggestion-text {
-    margin: 0;
-    color: #303133;
-    font-size: 14px;
-    line-height: 1.8;
-  }
+.case-lib-detail__suggestion-text {
+  margin: 0;
+  color: #303133;
+  font-size: 14px;
+  line-height: 1.8;
 }
 </style>
 
