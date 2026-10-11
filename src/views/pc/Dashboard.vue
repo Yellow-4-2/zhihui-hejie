@@ -39,7 +39,7 @@
       <div class="pc-section__title">最近和解（按更新时间）</div>
       <PcTable :columns="columns" :data="recent" border>
         <template #caseNo="{ row }">
-          <el-button text type="primary" @click="openDetail(row.id)">{{ row.caseNo }}</el-button>
+          <el-button class="dash-case-btn" text type="primary" @click="openDetail(row.id)">{{ row.caseNo }}</el-button>
         </template>
         <template #status="{ row }">
           <StatusBadge :status="row.status" variant="pc" size="small" effect="dark" />
@@ -121,3 +121,10 @@ function onReset() {
     .catch(() => {})
 }
 </script>
+
+<style scoped>
+/* 去掉文字按钮默认左右 15px 内边距，使案例编号与其他列文字左对齐 */
+.dash-case-btn {
+  padding: 8px 0;
+}
+</style>
