@@ -101,8 +101,8 @@ function onView(row: CaseLibraryEntry) {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding-bottom: 14px;
-    margin-bottom: 14px;
+    padding-bottom: 18px;
+    margin-bottom: 18px;
     border-bottom: 1px dashed #e5e7eb;
   }
 
@@ -135,7 +135,7 @@ function onView(row: CaseLibraryEntry) {
     display: flex;
     align-items: center;
     gap: 6px;
-    margin: 0 0 8px;
+    margin: 0 0 10px;
     font-size: 13px;
     font-weight: 600;
     color: #6b7280;
@@ -147,10 +147,10 @@ function onView(row: CaseLibraryEntry) {
   }
 
   &__block {
-    padding: 12px 14px;
+    padding: 14px 16px;
     background: #f9fafb;
     border-radius: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
   }
 
   &__summary {
@@ -161,7 +161,7 @@ function onView(row: CaseLibraryEntry) {
   }
 
   &__suggestion {
-    padding: 12px 14px;
+    padding: 14px 16px;
     background: linear-gradient(135deg, #f0f7ff 0%, #ecf5ff 100%);
     border: 1px solid #d9ecff;
     border-left: 3px solid #409eff;
@@ -207,10 +207,10 @@ function onView(row: CaseLibraryEntry) {
 }
 
 .case-lib-dialog .el-dialog__body {
-  padding: 18px 22px;
+  padding: 20px 24px;
 }
 
 .case-lib-dialog .el-dialog__footer {
-  padding: 0 22px 18px;
+  padding: 4px 24px 20px;
 }
 </style>
