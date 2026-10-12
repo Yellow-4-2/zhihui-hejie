@@ -545,6 +545,27 @@ export function handleMockRequest(
       const list = keyword ? db.enterprises.filter((e) => e.name.includes(keyword) || e.category.includes(keyword)) : db.enterprises
       return deepClone(list)
     }
+    if (!id && method === 'POST') {
+      const name = String(body.name ?? '').trim()
+      const category = String(body.category ?? '').trim()
+      const contactPhone = String(body.contactPhone ?? '').trim()
+      if (!name || !category || !contactPhone) throw new MockHttpError(400, '请填写完整信息')
+      if (db.enterprises.some((e) => e.name === name)) throw new MockHttpError(409, '该企业已入驻')
+      const maxNum = db.enterprises.reduce((max, e) => {
+        const m = e.id.match(/^e(\d+)$/)
+        return m ? Math.max(max, parseInt(m[1], 10)) : max
+      }, 0)
+      const ent: Enterprise = {
+        id: `e${maxNum + 1}`,
+        name,
+        category,
+        contactPhone,
+        settledAt: Date.now(),
+      }
+      db.enterprises.push(ent)
+      saveDB(db)
+      return deepClone(ent)
+    }
     const ent = db.enterprises.find((e) => e.id === id)
     if (!ent) throw new MockHttpError(404, '企业不存在')
     return deepClone(ent)

@@ -11,3 +11,8 @@ export function fetchEnterprises(keyword = ''): Promise<Enterprise[]> {
 export function fetchEnterpriseById(id: string): Promise<Enterprise> {
   return http<Enterprise>(`/api/enterprises/${id}`)
 }
+
+/** 新增入驻企业 */
+export function createEnterprise(data: Omit<Enterprise, 'id' | 'settledAt'>): Promise<Enterprise> {
+  return http<Enterprise>('/api/enterprises', { method: 'POST', body: JSON.stringify(data) })
+}

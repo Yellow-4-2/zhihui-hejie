@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Enterprise } from '@/types'
-import { fetchEnterprises } from '@/api/enterprises'
+import { fetchEnterprises, createEnterprise } from '@/api/enterprises'
 
 export const useEnterpriseStore = defineStore('enterprise', () => {
   const enterprises = ref<Enterprise[]>([])
@@ -19,6 +19,12 @@ export const useEnterpriseStore = defineStore('enterprise', () => {
     }
   }
 
+  async function create(data: Omit<Enterprise, 'id' | 'settledAt'>) {
+    const ent = await createEnterprise(data)
+    enterprises.value = [...enterprises.value, ent]
+    return ent
+  }
+
   function getById(id?: string): Enterprise | undefined {
     if (!id) return undefined
     return enterprises.value.find((e) => e.id === id)
@@ -32,5 +38,5 @@ export const useEnterpriseStore = defineStore('enterprise', () => {
     )
   }
 
-  return { enterprises, list, loaded, init, getById, search }
+  return { enterprises, list, loaded, init, create, getById, search }
 })
