@@ -28,7 +28,7 @@
       </div>
     </div>
 
-    <PcTable :columns="columns" :data="filtered" border>
+    <PcTable :columns="columns" :data="paged" border>
       <template #caseNo="{ row }">
         <el-button link type="primary" @click="openDetail(row.id)">{{ row.caseNo }}</el-button>
       </template>
@@ -42,12 +42,22 @@
       </template>
     </PcTable>
 
+    <div class="pc-pagination">
+      <el-pagination
+        v-model:current-page="page"
+        :page-size="pageSize"
+        :total="filtered.length"
+        background
+        layout="total, prev, pager, next"
+      />
+    </div>
+
     <CaseDetailDrawer v-model:show="drawerShow" :case-id="currentId" @refresh="refresh" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import type { ReconciliationCase } from '@/types'
 import { STATUS_META } from '@/config/statusMeta'
@@ -94,6 +104,18 @@ const filtered = computed<ReconciliationCase[]>(() => {
     )
   }
   return list
+})
+
+/* ---------- 分页 ---------- */
+const page = ref(1)
+const pageSize = 10
+const paged = computed(() => filtered.value.slice((page.value - 1) * pageSize, page.value * pageSize))
+watch([filterStatus, keyword], () => {
+  page.value = 1
+})
+watch(() => filtered.value.length, (len) => {
+  const maxPage = Math.max(1, Math.ceil(len / pageSize))
+  if (page.value > maxPage) page.value = maxPage
 })
 
 const columns: PcColumn[] = [

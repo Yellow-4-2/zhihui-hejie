@@ -228,3 +228,10 @@
     font-size: 16px;
   }
 }
+
+// ========== 列表分页条 ==========
+.pc-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}

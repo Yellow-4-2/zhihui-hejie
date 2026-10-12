@@ -11,7 +11,7 @@
       <el-button :icon="Refresh" plain @click="refresh">刷新</el-button>
     </div>
 
-    <PcTable :columns="columns" :data="list" border>
+    <PcTable :columns="columns" :data="paged" border>
       <template #caseNo="{ row }">
         <el-button link type="primary" @click="openDetail(row.id)">{{ row.caseNo }}</el-button>
       </template>
@@ -25,12 +25,22 @@
       </template>
     </PcTable>
 
+    <div class="pc-pagination">
+      <el-pagination
+        v-model:current-page="page"
+        :page-size="pageSize"
+        :total="list.length"
+        background
+        layout="total, prev, pager, next"
+      />
+    </div>
+
     <CaseDetailDrawer v-model:show="drawerShow" :case-id="currentId" @refresh="refresh" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, type PropType } from 'vue'
+import { ref, computed, watch, type PropType } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
 import { CaseStatus, type ReconciliationCase } from '@/types'
 import { STATUS_META } from '@/config/statusMeta'
@@ -59,6 +69,18 @@ const list = computed<ReconciliationCase[]>(() => {
 })
 
 const pageTitle = computed(() => STATUS_META[props.status as CaseStatus].label + '列表')
+
+/* ---------- 分页 ---------- */
+const page = ref(1)
+const pageSize = 10
+const paged = computed(() => list.value.slice((page.value - 1) * pageSize, page.value * pageSize))
+watch(() => props.status, () => {
+  page.value = 1
+})
+watch(() => list.value.length, (len) => {
+  const maxPage = Math.max(1, Math.ceil(len / pageSize))
+  if (page.value > maxPage) page.value = maxPage
+})
 
 const columns: PcColumn[] = [
   { key: 'caseNo', title: '案例编号', width: '160px', fixed: 'left' },

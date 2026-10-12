@@ -34,6 +34,28 @@
       </el-col>
     </el-row>
 
+    <!-- 数据图表 -->
+    <el-row :gutter="16" class="dash-charts">
+      <el-col :xs="24" :md="8">
+        <div class="dash-chart">
+          <div class="dash-chart__title">案件状态分布</div>
+          <div ref="pieEl" class="dash-chart__canvas"></div>
+        </div>
+      </el-col>
+      <el-col :xs="24" :md="8">
+        <div class="dash-chart">
+          <div class="dash-chart__title">月度和解量趋势</div>
+          <div ref="lineEl" class="dash-chart__canvas"></div>
+        </div>
+      </el-col>
+      <el-col :xs="24" :md="8">
+        <div class="dash-chart">
+          <div class="dash-chart__title">企业案件量排行</div>
+          <div ref="barEl" class="dash-chart__canvas"></div>
+        </div>
+      </el-col>
+    </el-row>
+
     <!-- 最近和解 -->
     <div class="pc-section">
       <div class="pc-section__title">最近和解（按更新时间）</div>
@@ -57,9 +79,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import * as echarts from 'echarts/core'
+import { PieChart, BarChart, LineChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
 import type { ReconciliationCase } from '@/types'
 import { STATUS_META, STATUS_FLOW_ORDER } from '@/config/statusMeta'
 import { useReconciliationStore } from '@/stores/reconciliation'
@@ -88,6 +114,142 @@ const recent = computed<ReconciliationCase[]>(() => {
   const all = recoStore.casesForRole(userStore.role) as ReconciliationCase[]
   return all.slice(0, 8)
 })
+
+/* ---------- 图表数据 ---------- */
+echarts.use([PieChart, BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
+
+const roleCases = computed<ReconciliationCase[]>(() => {
+  void version.value
+  return recoStore.casesForRole(userStore.role) as ReconciliationCase[]
+})
+
+const statusData = computed(() =>
+  STATUS_FLOW_ORDER.map((s) => ({
+    name: STATUS_META[s].label,
+    value: roleCases.value.filter((c) => c.status === s).length,
+    itemStyle: { color: STATUS_META[s].color },
+  })).filter((d) => d.value > 0),
+)
+
+const monthData = computed(() => {
+  const map = new Map<string, number>()
+  roleCases.value.forEach((c) => {
+    const d = new Date(c.updatedAt)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    map.set(key, (map.get(key) ?? 0) + 1)
+  })
+  return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+})
+
+const entData = computed(() => {
+  const map = new Map<string, number>()
+  roleCases.value.forEach((c) => {
+    const name = c.enterpriseName ?? '未知企业'
+    map.set(name, (map.get(name) ?? 0) + 1)
+  })
+  return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6)
+})
+
+/* ---------- 图表渲染 ---------- */
+const pieEl = ref<HTMLElement>()
+const lineEl = ref<HTMLElement>()
+const barEl = ref<HTMLElement>()
+let pieChart: echarts.ECharts | null = null
+let lineChart: echarts.ECharts | null = null
+let barChart: echarts.ECharts | null = null
+
+const AXIS_STYLE = {
+  axisLabel: { fontSize: 11, color: '#9ca3af' },
+  axisLine: { lineStyle: { color: '#e5e7eb' } },
+  axisTick: { show: false },
+}
+
+function renderPie() {
+  pieChart?.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}：{c} 件（{d}%）' },
+    legend: { bottom: 0, type: 'scroll', icon: 'circle', itemWidth: 8, itemHeight: 8, itemGap: 10, textStyle: { fontSize: 11, color: '#6b7280' } },
+    series: [
+      {
+        type: 'pie',
+        radius: ['44%', '68%'],
+        center: ['50%', '44%'],
+        itemStyle: { borderColor: '#fff', borderWidth: 2, borderRadius: 4 },
+        label: { show: false },
+        emphasis: { label: { show: false } },
+        data: statusData.value,
+      },
+    ],
+  })
+}
+
+function renderLine() {
+  lineChart?.setOption({
+    tooltip: { trigger: 'axis' },
+    grid: { left: 36, right: 20, top: 24, bottom: 30 },
+    xAxis: { type: 'category', boundaryGap: false, data: monthData.value.map((d) => d[0]), ...AXIS_STYLE },
+    yAxis: { type: 'value', minInterval: 1, splitLine: { lineStyle: { color: '#f3f4f6' } }, ...AXIS_STYLE },
+    series: [
+      {
+        type: 'line',
+        smooth: true,
+        data: monthData.value.map((d) => d[1]),
+        symbolSize: 7,
+        lineStyle: { width: 2.5, color: '#409eff' },
+        itemStyle: { color: '#409eff' },
+        areaStyle: { color: 'rgba(64, 158, 255, 0.12)' },
+      },
+    ],
+  })
+}
+
+function renderBar() {
+  const rows = entData.value.slice(0, 6).reverse()
+  barChart?.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: '{b}：{c} 件' },
+    grid: { left: 90, right: 28, top: 16, bottom: 24 },
+    xAxis: { type: 'value', minInterval: 1, splitLine: { lineStyle: { color: '#f3f4f6' } }, ...AXIS_STYLE },
+    yAxis: { type: 'category', data: rows.map((d) => d[0]), ...AXIS_STYLE },
+    series: [
+      {
+        type: 'bar',
+        data: rows.map((d) => d[1]),
+        barWidth: 14,
+        itemStyle: { borderRadius: [0, 4, 4, 0], color: '#67c23a' },
+      },
+    ],
+  })
+}
+
+function renderAll() {
+  renderPie()
+  renderLine()
+  renderBar()
+}
+
+function onResize() {
+  pieChart?.resize()
+  lineChart?.resize()
+  barChart?.resize()
+}
+
+onMounted(async () => {
+  await nextTick()
+  pieChart = echarts.init(pieEl.value!)
+  lineChart = echarts.init(lineEl.value!)
+  barChart = echarts.init(barEl.value!)
+  renderAll()
+  window.addEventListener('resize', onResize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', onResize)
+  pieChart?.dispose()
+  lineChart?.dispose()
+  barChart?.dispose()
+  pieChart = lineChart = barChart = null
+})
+
+watch([statusData, monthData, entData], renderAll)
 
 const columns: PcColumn[] = [
   { key: 'caseNo', title: '案例编号', width: '160px', fixed: 'left' },
@@ -126,5 +288,29 @@ function onReset() {
 /* 去掉文字按钮默认左右 15px 内边距，使案例编号与其他列文字左对齐 */
 .dash-case-btn {
   padding: 8px 0;
+}
+
+.dash-charts {
+  margin-bottom: 16px;
+}
+
+.dash-chart {
+  height: 100%;
+  padding: 14px 14px 6px;
+  background: #fff;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+}
+
+.dash-chart__title {
+  margin-bottom: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.dash-chart__canvas {
+  width: 100%;
+  height: 240px;
 }
 </style>
