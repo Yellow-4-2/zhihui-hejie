@@ -28,7 +28,7 @@
       </div>
     </div>
 
-    <PcTable :columns="columns" :data="paged" border>
+    <PcTable :columns="columns" :data="paged" border max-height="440">
       <template #caseNo="{ row }">
         <el-button link type="primary" @click="openDetail(row.id)">{{ row.caseNo }}</el-button>
       </template>

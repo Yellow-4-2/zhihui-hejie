@@ -2,6 +2,7 @@
   <el-table
     :data="data"
     :border="border"
+    :max-height="maxHeight"
     stripe
     :row-style="{ height: '48px' }"
     :cell-style="{ padding: '0 12px' }"
@@ -51,6 +52,7 @@ defineProps<{
   columns: PcColumn[]
   data: T[]
   border?: boolean
+  maxHeight?: string | number
 }>()
 
 defineEmits<{

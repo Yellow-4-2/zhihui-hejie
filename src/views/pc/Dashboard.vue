@@ -59,7 +59,7 @@
     <!-- 最近和解 -->
     <div class="pc-section">
       <div class="pc-section__title">最近和解（按更新时间）</div>
-      <PcTable :columns="columns" :data="recent" border>
+      <PcTable :columns="columns" :data="recent" border max-height="400">
         <template #caseNo="{ row }">
           <el-button class="dash-case-btn" text type="primary" @click="openDetail(row.id)">{{ row.caseNo }}</el-button>
         </template>
