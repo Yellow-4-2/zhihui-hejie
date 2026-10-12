@@ -40,134 +40,208 @@ interface MockDB {
   userSeq: number // 用户 id 自增（5、6…）
 }
 
-const DB_KEY = 'zhj-mock-db-v1'
+// v2：扩充演示数据（24 条案件、8 家企业、近 7 个月），换版本号让旧浏览器数据自动重新播种
+const DB_KEY = 'zhj-mock-db-v2'
 
 // ---------- 种子数据（与真实后端预置数据一致） ----------
 
-// 用显式年月日构造时间，避免 iOS Safari 无法解析 'YYYY-MM-DD HH:mm' 格式
-const T = {
-  d1: new Date(2022, 8, 1, 9, 30).getTime(),
-  d2: new Date(2022, 8, 2, 10, 0).getTime(),
-  d3: new Date(2022, 8, 3, 11, 0).getTime(),
-  d4: new Date(2022, 8, 4, 14, 0).getTime(),
-  d5: new Date(2022, 8, 5, 15, 0).getTime(),
-  d6: new Date(2022, 8, 6, 16, 0).getTime(),
-  d7: new Date(2022, 8, 7, 17, 0).getTime(),
+// 时间相对「现在」生成：保证趋势图始终覆盖最近几个月，无论何时演示数据都不过期
+const NOW = new Date()
+const monthsAgo = (n: number, day: number, hour = 10, minute = 0) =>
+  new Date(NOW.getFullYear(), NOW.getMonth() - n, day, hour, minute).getTime()
+const daysAgo = (n: number, hour = 10, minute = 0) =>
+  new Date(NOW.getFullYear(), NOW.getMonth(), NOW.getDate() - n, hour, minute).getTime()
+
+const CONSUMER_PHONES: Record<string, string> = {
+  张三: '13800000001',
+  李四: '13800000002',
+  王五: '13800000003',
+  赵六: '13800000004',
 }
 
-const SEED_CASES: ReconciliationCase[] = [
-  {
-    id: 'c1', caseNo: 'CASE-2022-0001', status: CaseStatus.PENDING,
-    consumerName: '张三', consumerPhone: '13800000001', enterpriseName: '海尔',
-    commodity: '冰箱（不制冷）', amount: 3000,
-    description: '购买不到一个月冰箱不制冷，要求换新，售后只同意维修。',
-    initiator: Role.CONSUMER, createdAt: T.d1, updatedAt: T.d1,
-    timeline: [{ status: CaseStatus.PENDING, at: T.d1, operator: '张三（消费者）', remark: '发起和解申请' }],
-  },
-  {
-    id: 'c2', caseNo: 'CASE-2022-0002', status: CaseStatus.ACCEPTED,
-    consumerName: '李四', consumerPhone: '13800000002', enterpriseId: 'e2', enterpriseName: '美的',
-    commodity: '洗衣机（多次维修）', amount: 800,
-    description: '洗衣机维修两次仍无法正常使用，要求换机。',
-    initiator: Role.COMMITTEE_M, createdAt: T.d1, updatedAt: T.d2,
-    timeline: [
-      { status: CaseStatus.PENDING, at: T.d1, operator: '消保委', remark: '录入和解申请' },
-      { status: CaseStatus.ACCEPTED, at: T.d2, operator: '消保委', remark: '核实情况属实，受理并分配至美的' },
-    ],
-  },
-  {
-    id: 'c3', caseNo: 'CASE-2022-0003', status: CaseStatus.IN_PROGRESS,
-    consumerName: '张三', consumerPhone: '13800000001', enterpriseId: 'e3', enterpriseName: '苏宁易购',
-    commodity: '网购商品（延迟发货）', amount: 500,
-    description: '付款后商家长期未发货，要求退款并赔偿。',
-    initiator: Role.CONSUMER, createdAt: T.d1, updatedAt: T.d3,
-    suggestion: { content: '建议商家依据平台规则及时发货或退款，并补偿消费者延迟损失。', referencedCaseIds: ['cl6'], createdAt: T.d3, author: '消保委' },
-    timeline: [
-      { status: CaseStatus.PENDING, at: T.d1, operator: '张三（消费者）', remark: '发起和解申请' },
-      { status: CaseStatus.ACCEPTED, at: T.d2, operator: '消保委', remark: '受理并分配至苏宁易购' },
-      { status: CaseStatus.IN_PROGRESS, at: T.d3, operator: '消保委', remark: '发起和解建议，并引用案例库参考' },
-    ],
-  },
-  {
-    id: 'c4', caseNo: 'CASE-2022-0004', status: CaseStatus.COMPLETED,
-    consumerName: '李四', consumerPhone: '13800000002', enterpriseId: 'e1', enterpriseName: '海尔',
-    commodity: '冰箱（噪音大）', amount: 2600,
-    description: '冰箱噪音超标，要求换新。',
-    initiator: Role.ENTERPRISE, createdAt: T.d1, updatedAt: T.d4,
-    suggestion: { content: '建议企业上门检测，噪音超标予以换新处理。', referencedCaseIds: ['cl5'], createdAt: T.d3, author: '消保委' },
-    completionVoucherImages: ['https://via.placeholder.com/150?text=voucher1'],
-    timeline: [
-      { status: CaseStatus.PENDING, at: T.d1, operator: '海尔（入驻企业）', remark: '录入和解申请' },
-      { status: CaseStatus.ACCEPTED, at: T.d2, operator: '消保委', remark: '受理并分配至海尔' },
-      { status: CaseStatus.IN_PROGRESS, at: T.d3, operator: '消保委', remark: '发起和解建议' },
-      { status: CaseStatus.COMPLETED, at: T.d4, operator: '海尔（入驻企业）', remark: '与消费者达成一致，上传和解完成凭证' },
-    ],
-  },
-  {
-    id: 'c5', caseNo: 'CASE-2022-0005', status: CaseStatus.FAILED,
-    consumerName: '张三', consumerPhone: '13800000001', enterpriseId: 'e4', enterpriseName: '格力',
-    commodity: '空调（制冷效果差）', amount: 3200,
-    description: '空调制冷效果差，要求换机，企业只同意加氟维修。',
-    initiator: Role.CONSUMER, createdAt: T.d1, updatedAt: T.d5,
-    suggestion: { content: '建议企业检测后若不达标予以换机，并承担检测费用。', referencedCaseIds: ['cl5'], createdAt: T.d3, author: '消保委' },
-    timeline: [
-      { status: CaseStatus.PENDING, at: T.d1, operator: '张三（消费者）', remark: '发起和解申请' },
-      { status: CaseStatus.ACCEPTED, at: T.d2, operator: '消保委', remark: '受理并分配至格力' },
-      { status: CaseStatus.IN_PROGRESS, at: T.d3, operator: '消保委', remark: '发起和解建议' },
-      { status: CaseStatus.FAILED, at: T.d5, operator: '消保委', remark: '消费者不同意和解方案' },
-    ],
-  },
-  {
-    id: 'c6', caseNo: 'CASE-2022-0006', status: CaseStatus.FINISHED,
-    consumerName: '李四', consumerPhone: '13800000002', enterpriseId: 'e2', enterpriseName: '美的',
-    commodity: '电饭煲（内胆变形）', amount: 400,
-    description: '内胆使用一周变形，要求更换内胆。',
-    initiator: Role.CONSUMER, createdAt: T.d1, updatedAt: T.d6,
-    suggestion: { content: '建议企业免费更换内胆并致歉。', referencedCaseIds: ['cl1'], createdAt: T.d3, author: '消保委' },
-    completionVoucherImages: ['https://via.placeholder.com/150?text=voucher2'],
-    returnVisitRemark: '电话回访消费者，确认已更换内胆，对处理满意。',
-    returnVisitedAt: T.d6,
-    timeline: [
-      { status: CaseStatus.PENDING, at: T.d1, operator: '李四（消费者）', remark: '发起和解申请' },
-      { status: CaseStatus.ACCEPTED, at: T.d2, operator: '消保委', remark: '受理并分配至美的' },
-      { status: CaseStatus.IN_PROGRESS, at: T.d3, operator: '消保委', remark: '发起和解建议' },
-      { status: CaseStatus.COMPLETED, at: T.d4, operator: '美的（入驻企业）', remark: '完成和解，更换内胆' },
-      { status: CaseStatus.FINISHED, at: T.d6, operator: '消保委', remark: '回访确认和解成功' },
-    ],
-  },
-  {
-    id: 'c7', caseNo: 'CASE-2022-0007', status: CaseStatus.EVALUATED,
-    consumerName: '张三', consumerPhone: '13800000001', enterpriseId: 'e1', enterpriseName: '海尔',
-    commodity: '热水器（漏水）', amount: 1800,
-    description: '新热水器使用漏水，要求换新。',
-    initiator: Role.CONSUMER, createdAt: T.d1, updatedAt: T.d7,
-    suggestion: { content: '建议企业上门确认漏水原因，非人为损坏予以换新。', referencedCaseIds: ['cl1', 'cl5'], createdAt: T.d3, author: '消保委' },
-    completionVoucherImages: ['https://via.placeholder.com/150?text=voucher3'],
-    returnVisitRemark: '已换新，消费者满意。',
-    returnVisitedAt: T.d6,
-    evaluation: { rating: 5, comment: '消保委处理及时，企业服务到位，非常满意！', createdAt: T.d7 },
-    timeline: [
-      { status: CaseStatus.PENDING, at: T.d1, operator: '张三（消费者）', remark: '发起和解申请' },
-      { status: CaseStatus.ACCEPTED, at: T.d2, operator: '消保委', remark: '受理并分配至海尔' },
-      { status: CaseStatus.IN_PROGRESS, at: T.d3, operator: '消保委', remark: '发起和解建议' },
-      { status: CaseStatus.COMPLETED, at: T.d4, operator: '海尔（入驻企业）', remark: '完成和解，予以换新' },
-      { status: CaseStatus.FINISHED, at: T.d6, operator: '消保委', remark: '回访确认和解成功' },
-      { status: CaseStatus.EVALUATED, at: T.d7, operator: '张三（消费者）', remark: '评价满意（5星）' },
-    ],
-  },
-  {
-    id: 'c8', caseNo: 'CASE-2022-0008', status: CaseStatus.REJECTED,
-    consumerName: '张三', consumerPhone: '13800000001', enterpriseName: '苏宁易购',
-    commodity: '虚拟商品（会员权益）', amount: 200,
-    description: '购买虚拟会员后反悔要求退款。',
-    initiator: Role.CONSUMER, createdAt: T.d1, updatedAt: T.d2,
-    rejectRemark: '虚拟商品一经开通使用不在消保委受理范围，建议与商家协商。',
-    timeline: [
-      { status: CaseStatus.PENDING, at: T.d1, operator: '张三（消费者）', remark: '发起和解申请' },
-      { status: CaseStatus.REJECTED, at: T.d2, operator: '消保委', remark: '非消保委受理范围，不予受理' },
-    ],
-  },
+const ENTERPRISE_NAMES: Record<string, string> = {
+  e1: '海尔',
+  e2: '美的',
+  e3: '苏宁易购',
+  e4: '格力',
+  e5: '京东',
+  e6: '小米',
+  e7: '拼多多',
+  e8: 'vivo',
+}
+
+/** 每种最终状态对应的标准流转轨迹 */
+const FLOW: Record<CaseStatus, CaseStatus[]> = {
+  [CaseStatus.PENDING]: [CaseStatus.PENDING],
+  [CaseStatus.ACCEPTED]: [CaseStatus.PENDING, CaseStatus.ACCEPTED],
+  [CaseStatus.IN_PROGRESS]: [CaseStatus.PENDING, CaseStatus.ACCEPTED, CaseStatus.IN_PROGRESS],
+  [CaseStatus.COMPLETED]: [CaseStatus.PENDING, CaseStatus.ACCEPTED, CaseStatus.IN_PROGRESS, CaseStatus.COMPLETED],
+  [CaseStatus.FAILED]: [CaseStatus.PENDING, CaseStatus.ACCEPTED, CaseStatus.IN_PROGRESS, CaseStatus.FAILED],
+  [CaseStatus.FINISHED]: [CaseStatus.PENDING, CaseStatus.ACCEPTED, CaseStatus.IN_PROGRESS, CaseStatus.COMPLETED, CaseStatus.FINISHED],
+  [CaseStatus.EVALUATED]: [CaseStatus.PENDING, CaseStatus.ACCEPTED, CaseStatus.IN_PROGRESS, CaseStatus.COMPLETED, CaseStatus.FINISHED, CaseStatus.EVALUATED],
+  [CaseStatus.REJECTED]: [CaseStatus.PENDING, CaseStatus.REJECTED],
+}
+
+const SUGGESTION_TEXTS = [
+  '建议企业依据三包政策妥善处理，保障消费者合法权益。',
+  '建议企业与消费者协商一致，尽快完成维修或退换处理。',
+  '建议企业主动联系消费者说明处理方案，并承担相应费用。',
+  '建议企业核查产品问题，按承诺为消费者办理退换货。',
 ]
+const VISIT_REMARKS = [
+  '电话回访消费者，确认问题已解决，对处理结果满意。',
+  '回访确认和解协议已履行完毕，双方无异议。',
+  '消费者反馈企业已按约定处理，对调解效率表示认可。',
+]
+const EVAL_COMMENTS = [
+  '消保委处理及时，企业服务到位，非常满意！',
+  '调解进度快，结果公平合理，很满意。',
+  '全程线上办理很方便，企业态度也不错。',
+]
+
+interface SeedSpec {
+  status: CaseStatus
+  consumer: string
+  ent: string
+  commodity: string
+  amount: number
+  desc: string
+  /** 创建时间：n 个月前的第 fromDay 天 */
+  from: number
+  fromDay: number
+  /** 最后流转时间：n 个月前的第 toDay 天（0 表示用 toDays 天前） */
+  to: number
+  toDay: number
+  initiator?: Role
+  rejectRemark?: string
+}
+
+// 24 条种子：覆盖全部 8 种状态、8 家企业、近 7 个月，消费者以张三/李四为主（与移动端演示账号对应）
+const SPECS: SeedSpec[] = [
+  { status: CaseStatus.FINISHED, consumer: '张三', ent: 'e1', commodity: '空调（噪音大）', amount: 2100, desc: '新空调运行噪音明显超标，影响夜间休息，要求上门检修或换新。', from: 6, fromDay: 5, to: 6, toDay: 2 },
+  { status: CaseStatus.EVALUATED, consumer: '李四', ent: 'e2', commodity: '电烤箱（温控失灵）', amount: 950, desc: '烤箱实际温度与设定偏差超过 30 度，要求换新。', from: 6, fromDay: 8, to: 6, toDay: 1 },
+  { status: CaseStatus.FINISHED, consumer: '张三', ent: 'e3', commodity: '电视机（屏幕花屏）', amount: 4500, desc: '电视使用三个月出现花屏，售后拖延处理，要求换新。', from: 5, fromDay: 12, to: 5, toDay: 5 },
+  { status: CaseStatus.EVALUATED, consumer: '王五', ent: 'e5', commodity: '空气炸锅（涂层脱落）', amount: 320, desc: '炸锅内涂层大面积脱落，担心健康风险，要求退货。', from: 5, fromDay: 10, to: 5, toDay: 3 },
+  { status: CaseStatus.FAILED, consumer: '张三', ent: 'e4', commodity: '除湿机（除湿无效）', amount: 1300, desc: '除湿机运行正常但除湿效果差，企业拒绝退换，双方无法达成一致。', from: 5, fromDay: 8, to: 5, toDay: 1 },
+  { status: CaseStatus.FINISHED, consumer: '李四', ent: 'e1', commodity: '洗碗机（洗不干净）', amount: 3800, desc: '洗碗机多次清洗后餐具仍有残留，要求上门维修。', from: 4, fromDay: 15, to: 4, toDay: 8, initiator: Role.ENTERPRISE },
+  { status: CaseStatus.EVALUATED, consumer: '张三', ent: 'e6', commodity: '手环（续航虚标）', amount: 250, desc: '手环实际续航仅为宣传的一半，要求退货退款。', from: 4, fromDay: 12, to: 4, toDay: 4 },
+  { status: CaseStatus.FINISHED, consumer: '李四', ent: 'e7', commodity: '保温杯（保温差）', amount: 89, desc: '保温杯保温时长不足 2 小时，与宣传严重不符。', from: 4, fromDay: 9, to: 4, toDay: 2 },
+  { status: CaseStatus.IN_PROGRESS, consumer: '王五', ent: 'e8', commodity: '手机（拍照发虚）', amount: 2800, desc: '新手机拍照对焦模糊，多次售后未解决，要求换机。', from: 4, fromDay: 14, to: 4, toDay: 1 },
+  { status: CaseStatus.FINISHED, consumer: '张三', ent: 'e2', commodity: '电风扇（异响）', amount: 260, desc: '风扇高速档有异常噪音，要求更换新品。', from: 3, fromDay: 18, to: 3, toDay: 10 },
+  { status: CaseStatus.EVALUATED, consumer: '李四', ent: 'e1', commodity: '净水器（出水异味）', amount: 1500, desc: '净水器过滤后仍有异味，要求检测或更换滤芯系统。', from: 3, fromDay: 15, to: 3, toDay: 7 },
+  { status: CaseStatus.FAILED, consumer: '赵六', ent: 'e3', commodity: '冰柜（冷冻失效）', amount: 2200, desc: '冰柜冷冻室无法达到冷冻温度，企业只同意维修，消费者要求换机。', from: 3, fromDay: 12, to: 3, toDay: 4 },
+  { status: CaseStatus.IN_PROGRESS, consumer: '张三', ent: 'e4', commodity: '热水器（水温不稳）', amount: 1900, desc: '热水器水温忽冷忽热，存在安全隐患，要求处理。', from: 3, fromDay: 10, to: 3, toDay: 2 },
+  { status: CaseStatus.ACCEPTED, consumer: '王五', ent: 'e5', commodity: '蓝牙耳机（频繁断连）', amount: 450, desc: '耳机使用一周频繁断连，要求换新。', from: 3, fromDay: 8, to: 3, toDay: 1, initiator: Role.COMMITTEE_M },
+  { status: CaseStatus.COMPLETED, consumer: '李四', ent: 'e6', commodity: '净水壶（滤芯发霉）', amount: 180, desc: '新滤芯未到期即发霉，要求退货并道歉。', from: 2, fromDay: 20, to: 2, toDay: 12 },
+  { status: CaseStatus.FINISHED, consumer: '张三', ent: 'e8', commodity: '充电宝（鼓包）', amount: 160, desc: '充电宝使用半年出现鼓包，要求退货。', from: 2, fromDay: 18, to: 2, toDay: 9 },
+  { status: CaseStatus.IN_PROGRESS, consumer: '李四', ent: 'e1', commodity: '燃气灶（打不着火）', amount: 700, desc: '燃气灶点火困难，多次报修未根治，要求换新。', from: 2, fromDay: 15, to: 2, toDay: 6 },
+  { status: CaseStatus.ACCEPTED, consumer: '赵六', ent: 'e2', commodity: '破壁机（异响剧烈）', amount: 560, desc: '破壁机运行时异响剧烈并有烧焦味，要求检测处理。', from: 2, fromDay: 12, to: 2, toDay: 3 },
+  { status: CaseStatus.COMPLETED, consumer: '张三', ent: 'e7', commodity: '数据线（接触不良）', amount: 39, desc: '数据线使用一周即接触不良，商家拒绝售后。', from: 1, fromDay: 24, to: 1, toDay: 15 },
+  { status: CaseStatus.ACCEPTED, consumer: '李四', ent: 'e3', commodity: '电吹风（过热自动停机）', amount: 220, desc: '吹风机使用中过热保护频繁启动，要求换新。', from: 1, fromDay: 20, to: 1, toDay: 10 },
+  { status: CaseStatus.PENDING, consumer: '王五', ent: 'e4', commodity: '加湿器（漏水）', amount: 300, desc: '加湿器底座漏水，弄湿桌面和地板，要求换新。', from: 1, fromDay: 16, to: 1, toDay: 16 },
+  { status: CaseStatus.COMPLETED, consumer: '李四', ent: 'e1', commodity: '咖啡机（泵体故障）', amount: 1200, desc: '咖啡机萃取压力不足，检测为泵体故障，要求换新。', from: 0, fromDay: 0, to: 0, toDay: 2 },
+  { status: CaseStatus.PENDING, consumer: '张三', ent: 'e5', commodity: '电子秤（称重不准）', amount: 65, desc: '电子秤两次称重数值差异明显，要求退货。', from: 0, fromDay: 0, to: 0, toDay: 4 },
+  { status: CaseStatus.REJECTED, consumer: '王五', ent: 'e6', commodity: '会员服务（自动续费）', amount: 30, desc: '会员到期后被自动续费扣款，要求退款。', from: 0, fromDay: 0, to: 0, toDay: 6, rejectRemark: '该投诉涉及会员自动续费，建议先与平台客服关闭续费并协商退款，消保委可协助后续调解。' },
+]
+
+// 0 表示「本月内」：用 daysAgo 表达，避免月初演示时出现未来时间
+function specTime(spec: Pick<SeedSpec, 'from' | 'fromDay' | 'to' | 'toDay'>, kind: 'from' | 'to'): number {
+  if (kind === 'from') {
+    return spec.from === 0 ? daysAgo(Math.max(spec.toDay + 2, 8)) : monthsAgo(spec.from, spec.fromDay)
+  }
+  return spec.to === 0 ? daysAgo(spec.toDay, 15, 30) : monthsAgo(spec.to, spec.toDay, 15, 30)
+}
+
+let voucherSeq = 0
+const SEED_CASES: ReconciliationCase[] = SPECS.map((spec, i) => {
+  const createdAt = specTime(spec, 'from')
+  const updatedAt = specTime(spec, 'to')
+  const flow = FLOW[spec.status]
+  const consumer = spec.consumer
+  const entName = ENTERPRISE_NAMES[spec.ent]
+  const initiator = spec.initiator ?? Role.CONSUMER
+
+  const timeline = flow.map((st, idx) => {
+    const at = createdAt + Math.round(((updatedAt - createdAt) * idx) / Math.max(flow.length - 1, 1))
+    let operator = '消保委'
+    let remark = ''
+    switch (st) {
+      case CaseStatus.PENDING:
+        operator = initiator === Role.ENTERPRISE ? `${entName}（入驻企业）` : initiator === Role.COMMITTEE_M ? '消保委' : `${consumer}（消费者）`
+        remark = initiator === Role.CONSUMER ? '发起和解申请' : '录入和解申请'
+        break
+      case CaseStatus.ACCEPTED:
+        remark = `核实情况属实，受理并分配至${entName}`
+        break
+      case CaseStatus.IN_PROGRESS:
+        remark = '发起和解建议'
+        break
+      case CaseStatus.COMPLETED:
+        operator = `${entName}（入驻企业）`
+        remark = '与消费者达成一致，完成和解并上传凭证'
+        break
+      case CaseStatus.FAILED:
+        remark = '双方未达成一致，和解终止'
+        break
+      case CaseStatus.FINISHED:
+        remark = VISIT_REMARKS[i % VISIT_REMARKS.length]
+        break
+      case CaseStatus.EVALUATED:
+        operator = `${consumer}（消费者）`
+        remark = `完成满意度评价（${i % 3 === 2 ? 4 : 5}星）`
+        break
+      case CaseStatus.REJECTED:
+        remark = spec.rejectRemark ?? '非消保委受理范围，不予受理'
+        break
+    }
+    return { status: st, at, operator, remark }
+  })
+
+  const item: ReconciliationCase = {
+    id: `c${i + 1}`,
+    caseNo: `CASE-${new Date(createdAt).getFullYear()}-${String(i + 1).padStart(4, '0')}`,
+    status: spec.status,
+    consumerName: consumer,
+    consumerPhone: CONSUMER_PHONES[consumer],
+    commodity: spec.commodity,
+    amount: spec.amount,
+    description: spec.desc,
+    initiator,
+    createdAt,
+    updatedAt,
+    timeline,
+  }
+  if (spec.status === CaseStatus.REJECTED) {
+    item.enterpriseName = entName
+    item.rejectRemark = spec.rejectRemark ?? '非消保委受理范围，不予受理'
+  } else {
+    item.enterpriseId = spec.ent
+    item.enterpriseName = entName
+  }
+  if (flow.length >= 3) {
+    item.suggestion = {
+      content: SUGGESTION_TEXTS[i % SUGGESTION_TEXTS.length],
+      referencedCaseIds: [`cl${(i % 6) + 1}`],
+      createdAt: timeline[2].at,
+      author: '消保委',
+    }
+  }
+  if (spec.status === CaseStatus.COMPLETED || spec.status === CaseStatus.FINISHED || spec.status === CaseStatus.EVALUATED) {
+    item.completionVoucherImages = [`https://picsum.photos/seed/voucher${++voucherSeq}/400/300`]
+  }
+  if (spec.status === CaseStatus.FINISHED || spec.status === CaseStatus.EVALUATED) {
+    item.returnVisitRemark = VISIT_REMARKS[i % VISIT_REMARKS.length]
+    item.returnVisitedAt = updatedAt
+  }
+  if (spec.status === CaseStatus.EVALUATED) {
+    item.evaluation = {
+      rating: i % 3 === 2 ? 4 : 5,
+      comment: EVAL_COMMENTS[i % EVAL_COMMENTS.length],
+      createdAt: updatedAt,
+    }
+  }
+  return item
+})
 
 const SEED_CASE_LIBRARY: CaseLibraryEntry[] = [
   {
@@ -213,6 +287,10 @@ const SEED_ENTERPRISES: Enterprise[] = [
   { id: 'e2', name: '美的', category: '家电', contactPhone: '0571-88888002', settledAt: new Date('2021-08-20').getTime() },
   { id: 'e3', name: '苏宁易购', category: '零售', contactPhone: '0571-88888003', settledAt: new Date('2022-01-10').getTime() },
   { id: 'e4', name: '格力', category: '家电', contactPhone: '0571-88888004', settledAt: new Date('2022-03-05').getTime() },
+  { id: 'e5', name: '京东', category: '零售', contactPhone: '0571-88888005', settledAt: new Date('2022-06-01').getTime() },
+  { id: 'e6', name: '小米', category: '数码', contactPhone: '0571-88888006', settledAt: new Date('2023-02-14').getTime() },
+  { id: 'e7', name: '拼多多', category: '电商', contactPhone: '0571-88888007', settledAt: new Date('2023-09-08').getTime() },
+  { id: 'e8', name: 'vivo', category: '手机', contactPhone: '0571-88888008', settledAt: new Date('2024-04-18').getTime() },
 ]
 
 const SEED_USERS: MockUserRecord[] = [
@@ -236,7 +314,7 @@ function loadDB(): MockDB {
     caseLibrary: SEED_CASE_LIBRARY,
     enterprises: SEED_ENTERPRISES,
     users: SEED_USERS,
-    caseSeq: 9,
+    caseSeq: 25,
     userSeq: 5,
   }
   saveDB(fresh)
@@ -276,7 +354,7 @@ function nextCaseNo(cases: ReconciliationCase[]): string {
     const m = /(\d+)$/.exec(c.caseNo)
     if (m) max = Math.max(max, parseInt(m[1], 10))
   }
-  return `CASE-2022-${String(max + 1).padStart(4, '0')}`
+  return `CASE-${NOW.getFullYear()}-${String(max + 1).padStart(4, '0')}`
 }
 
 function validateEnterpriseLink(role: Role, enterpriseId?: string) {
